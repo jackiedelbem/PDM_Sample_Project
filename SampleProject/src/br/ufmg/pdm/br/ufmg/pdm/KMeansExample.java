@@ -93,11 +93,9 @@ public class KMeansExample {
 			private double[] getArrayResources(String[] sarray) {
 				
 				double[] values = new double[sarray.length];
-				for (int i = 0; i < sarray.length; i++){
+				for (int i = 1; i < sarray.length; i++){
 					values[i]=sarray[i].equals("") ? 0 :  Double.parseDouble(sarray[i]);
 				}
-	        	values[0] = Double.parseDouble(sarray[1]);
-	        	values[1]= Double.parseDouble(sarray[2]);
 	        	values[values.length - 1]= 1;
 				return values;
 			}
@@ -110,41 +108,43 @@ public class KMeansExample {
 			private static final long serialVersionUID = 7689214802888112748L;
 
 			public Iterable<String> call(String s) {
-		  	    String[] sarray = s.split(",");
-				String[] values = new String[sarray.length/NUMERO_DE_COLUNAS];
+		  	    String[] sarray = s.split("\n");
+				String[] values = new String[sarray.length];
 				int contIndexArrayByLine = 0;
-				for (int index = 0; index < sarray.length; index+=NUMERO_DE_COLUNAS) {
-					String textLine = getTextLine(sarray, index);
+				for (String line : sarray) {
+					String[] arrayLine = line.split(",");
+					String textLine = getTextLine(arrayLine);
 					values[contIndexArrayByLine] = textLine;
 					contIndexArrayByLine++;
 				}
 	  	      	return Arrays.asList(values);
 	        }
 
-			private String getTextLine(String[] sarray, int index) {
-				String textLine = sarray[index + JOB_ID] + "," +
-						getTempoExecucao(sarray, index) +
-						sarray[index + CPU_USAGE] + "," +
-						sarray[index + MAX_CPU] + "," +
-						sarray[index + MEMORY_USAGE] + "," +
-						sarray[index + MAXIMUM_MEMORY] + "," +
-						sarray[index + ASSIGNED_MEMORY] + "," +
-						sarray[index + CACHE] + "," +
-						sarray[index + UNMAPPED_CACHE] + "," +
-						sarray[index + MED_DISK_SPACE] + "," +
-						sarray[index + MED_I_O] + "," +
-						sarray[index + MAX_I_O];
+			private String getTextLine(String[] array) {
+				String textLine = array[JOB_ID] + "," +
+						getTempoExecucao(array) + "," +
+						array[CPU_USAGE] + "," +
+						array[MAX_CPU];
+//								+ "," +
+//						sarray[MEMORY_USAGE] + "," +
+//						sarray[MAXIMUM_MEMORY] + "," +
+//						sarray[ASSIGNED_MEMORY] + "," +
+//						sarray[CACHE] + "," +
+//						sarray[UNMAPPED_CACHE] + "," +
+//						sarray[MED_DISK_SPACE] + "," +
+//						sarray[MED_I_O] + "," +
+//						sarray[MAX_I_O];
 									
 				return textLine;
 			}
 			
-			private String getTempoExecucao(String[] sarray, int index){
-				Double inicio =  Double.parseDouble(sarray[index + TEMPO_INICIAL]);
-				Double fim = Double.parseDouble(sarray[index + TEMPO_FINAL]);
+			private String getTempoExecucao(String[] sarray){
+				Double inicio =  Double.parseDouble(sarray[TEMPO_INICIAL]);
+				Double fim = Double.parseDouble(sarray[TEMPO_FINAL]);
 				
 				Double tempoTotal = fim - inicio;
 				
-				return tempoTotal.toString();
+				return sarray[TEMPO_INICIAL];
 			}
 	    });
 	}
