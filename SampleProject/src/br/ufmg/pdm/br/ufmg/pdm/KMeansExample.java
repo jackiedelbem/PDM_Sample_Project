@@ -18,10 +18,8 @@ public class KMeansExample {
 
 	private static final String APP_NAME = "PDM - Trabalho Gustavo e Jacqueline";
 	private static final String PATH_DATA = "/user/root/*.csv";
-	private static final String PATH_MAP_BY_JOB_ID = "/user/root/mapJobId.txt";
+	private static final String PATH_MAP_BY_JOB_ID = "/user/root/mapByJobId.txt";
 
-	private static final Integer NUMERO_DE_COLUNAS = 18;
-	
 	private static final Integer TEMPO_INICIAL = 0;
 	private static final Integer TEMPO_FINAL = 1;
 	private static final Integer JOB_ID = 2;
@@ -93,8 +91,10 @@ public class KMeansExample {
 			private double[] getArrayResources(String[] sarray) {
 				
 				double[] values = new double[sarray.length];
+				int index = 0;
 				for (int i = 1; i < sarray.length; i++){
-					values[i]=sarray[i].equals("") ? 0 :  Double.parseDouble(sarray[i]);
+					values[index]=sarray[i].equals("") ? 0 :  Double.parseDouble(sarray[i]);
+					index++;
 				}
 	        	values[values.length - 1]= 1;
 				return values;
@@ -120,20 +120,19 @@ public class KMeansExample {
 	  	      	return Arrays.asList(values);
 	        }
 
-			private String getTextLine(String[] array) {
-				String textLine = array[JOB_ID] + "," +
-						getTempoExecucao(array) + "," +
-						array[CPU_USAGE] + "," +
-						array[MAX_CPU];
-//								+ "," +
-//						sarray[MEMORY_USAGE] + "," +
-//						sarray[MAXIMUM_MEMORY] + "," +
-//						sarray[ASSIGNED_MEMORY] + "," +
-//						sarray[CACHE] + "," +
-//						sarray[UNMAPPED_CACHE] + "," +
-//						sarray[MED_DISK_SPACE] + "," +
-//						sarray[MED_I_O] + "," +
-//						sarray[MAX_I_O];
+			private String getTextLine(String[] sarray) {
+				String textLine = sarray[JOB_ID] + "," +
+						getTempoExecucao(sarray) + "," +
+						sarray[CPU_USAGE] + "," +
+						sarray[MAX_CPU]	+ "," +
+						sarray[MEMORY_USAGE] + "," +
+						sarray[MAXIMUM_MEMORY] + "," +
+						sarray[ASSIGNED_MEMORY] + "," +
+						sarray[CACHE] + "," +
+						sarray[UNMAPPED_CACHE] + "," +
+						sarray[MED_DISK_SPACE] + "," +
+						sarray[MED_I_O] + "," +
+						sarray[MAX_I_O];
 									
 				return textLine;
 			}
