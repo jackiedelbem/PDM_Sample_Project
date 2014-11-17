@@ -1,6 +1,7 @@
 package br.ufmg.pdm;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -137,13 +138,17 @@ public class KMeansExample {
 				return textLine;
 			}
 			
-			private String getTempoExecucao(String[] sarray){
-				Double inicio =  Double.parseDouble(sarray[TEMPO_INICIAL]);
-				Double fim = Double.parseDouble(sarray[TEMPO_FINAL]);
+			private Long getTempoExecucao(String[] sarray){
+				Long inicio =  Long.parseLong(sarray[TEMPO_INICIAL]);
+				Long fim = Long.parseLong(sarray[TEMPO_FINAL]);
 				
-				Double tempoTotal = fim - inicio;
+				Long variacaoTempo = fim - inicio;
 				
-				return sarray[TEMPO_INICIAL];
+				Long tempoEmSegundos = TimeUnit.MILLISECONDS.toSeconds(variacaoTempo) ;
+				//TimeUnit.MILLISECONDS.toMinutes(variacaoTempo);
+				//TimeUnit.MILLISECONDS.toHours(variacaoTempo)
+				
+				return tempoEmSegundos;
 			}
 	    });
 	}
