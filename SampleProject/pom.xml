@@ -1,0 +1,21 @@
+<project>
+  <groupId>edu.berkeley</groupId>
+  <artifactId>simple-project</artifactId>
+  <modelVersion>4.0.0</modelVersion>
+  <name>Simple Project</name>
+  <packaging>jar</packaging>
+  <version>1.0</version>
+  <dependencies>
+    <dependency> <!-- Spark dependency -->
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_2.10</artifactId>
+      <version>1.1.0</version>
+    </dependency>
+  </dependencies>
+  <repositories>
+    <repository>
+        <id>Spark repository</id>
+        <url>http://www.sparkjava.com/nexus/content/repositories/spark/</url>
+    </repository>
+</repositories>
+</project>
