@@ -1,6 +1,9 @@
 package br.ufmg.pdm;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.spark.SparkConf;
@@ -8,6 +11,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.mllib.linalg.Vector;
@@ -15,11 +19,15 @@ import org.apache.spark.mllib.linalg.Vectors;
 
 import scala.Tuple2;
 
+import com.google.common.collect.Lists;
+
 public class KMeansExample {
 
 	private static final String APP_NAME = "PDM - Trabalho Gustavo e Jacqueline";
 	private static final String PATH_DATA = "/user/root/*.csv";
-	private static final String PATH_MAP_BY_JOB_ID = "/user/root/recursos.txt";
+	private static final String PATH_MAP_BY_JOB_ID = "/user/root/recursosById.txt";
+	
+	private static final String PATH_CENTROIDES = "/user/root/centroides.txt";
 
 	private static final Integer TEMPO_INICIAL = 0;
 	private static final Integer TEMPO_FINAL = 1;
@@ -46,9 +54,78 @@ public class KMeansExample {
 		JavaRDD<String> data = sc.textFile(PATH_DATA);
 	    JavaRDD<String> arrayByLine = functionArrayByLine(data);
 	    JavaPairRDD<String, Vector> mapJobId = functionMapByJobId(arrayByLine);
-	    JavaPairRDD<String, Vector> jobIdResources = functionReduceByJobId(mapJobId);
+	    JavaPairRDD<String, Vector> recursosByJobID = functionReduceByJobId(mapJobId);
+	    
+	    calculaKmeans(recursosByJobID);
 	
-	    jobIdResources.saveAsTextFile(PATH_MAP_BY_JOB_ID);
+	    recursosByJobID.saveAsTextFile(PATH_MAP_BY_JOB_ID);
+	}
+	
+	private static void calculaKmeans(JavaPairRDD<String, Vector> recursosByJobID){
+		int K = 18;
+		
+		List<Tuple2<String, Vector>> centroidTuples = recursosByJobID.takeSample(false, K, 42);
+		final List<Vector> centroids = Lists.newArrayList();
+		for (Tuple2<String, Vector> t: centroidTuples) {
+			centroids.add(t._2());
+		}
+		
+		
+		JavaPairRDD<Integer, Vector> closest = recursosByJobID.mapToPair(
+		     new PairFunction<Tuple2<String, Vector>, Integer, Vector>() {
+
+				private static final long serialVersionUID = -6789983016973806171L;
+
+
+				public Tuple2<Integer, Vector> call(Tuple2<String, Vector> in) throws Exception {
+			         return new Tuple2<Integer, Vector>(closestPoint(in._2(), centroids), in._2());
+			       }
+			     }
+		   );
+		
+		//Agrupa Listas com o mesmo centroide
+		JavaPairRDD<Integer, Iterable<Vector>> pointsGroup = closest.groupByKey();
+		
+		pointsGroup.saveAsTextFile(PATH_CENTROIDES);
+		
+//		Map<Integer, Vector> newCentroids = pointsGroup.mapValues(
+//			     new Function<Iterable<Vector>, Vector>() {
+//			       
+//					private static final long serialVersionUID = 1L;
+//	
+//					public Vector call(Iterable<Vector> ps) throws Exception {
+//						return average(ps);
+//					}
+//				}).collectAsMap();
+	}
+	
+//	static Vector average(Iterable<Vector> ps) {
+//		//implementar calculo da media
+//		return ps.iterator().next();
+//	}
+	
+	static int closestPoint(Vector p, List<Vector> centers) {
+	    int bestIndex = 0;
+	    double closest = Double.POSITIVE_INFINITY;
+	    for (int i = 0; i < centers.size(); i++) {
+	    	double tempDist = computeEuclideanDistance(p.toArray(), centers.get(i).toArray());
+	    	if (tempDist < closest) {
+	    		closest = tempDist;
+	    		bestIndex = i;
+	    	}
+	    }
+	    return bestIndex;
+	}
+	
+	static double computeEuclideanDistance(double[] vector1, double[] vector2) {
+	     double sum = 0.0;
+	     
+	     for (int index=0; index<vector1.length; index++) {
+	    	 double diferenca = vector1[index] - vector2[index];
+	          sum = sum + Math.pow(diferenca,2);
+	     }
+	     
+	     return Math.pow(sum,0.5);
 	}
 
 	private static JavaPairRDD<String, Vector> functionReduceByJobId(JavaPairRDD<String, Vector> mapJobId) {
