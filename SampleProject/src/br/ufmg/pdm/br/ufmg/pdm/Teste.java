@@ -19,7 +19,7 @@ public class Teste {
 	private static final Integer MAX_I_O = 14;
 
 	public static void main(String[] args) {
-		String s = "600000000,900000000,3418309,0,4155527081,0.001562,0.06787,0.07568,0.001156,0.001503,0.06787,2.861e-06,0.0001869,0.03967,0.0003567,2.445,0.007243,0,1,";
+		String s = "600000000,900000000,3418309,0,4155527081,0.001562,0.06787,,0.001156,,0.06787,2.861e-06,,,,,,,,";
 		String[] arrayLine = s.split(",");
 		String textLine = getTextLine(arrayLine);
 	    System.out.println(textLine);
@@ -29,18 +29,27 @@ public class Teste {
 	public static String getTextLine(String[] sarray) {
 		String textLine = sarray[JOB_ID] + "," +
 				getTempoExecucao(sarray) + "," +
-				sarray[CPU_USAGE] + "," +
-				sarray[MAX_CPU] + "," +
-				sarray[MEMORY_USAGE] + "," +
-				sarray[MAXIMUM_MEMORY] + "," +
-				sarray[ASSIGNED_MEMORY] + "," +
-				sarray[CACHE] + "," +
-				sarray[UNMAPPED_CACHE] + "," +
-				sarray[MED_DISK_SPACE] + "," +
-				sarray[MED_I_O] + "," +
-				sarray[MAX_I_O];
+				getValueArray(sarray,CPU_USAGE) + "," +
+				getValueArray(sarray,MAX_CPU)	+ "," +
+				getValueArray(sarray,MEMORY_USAGE) + "," +
+				getValueArray(sarray,MAXIMUM_MEMORY) + "," +
+				getValueArray(sarray,ASSIGNED_MEMORY) + "," +
+				getValueArray(sarray,CACHE) + "," +
+				getValueArray(sarray,UNMAPPED_CACHE) + "," +
+				getValueArray(sarray,MED_DISK_SPACE) + "," +
+				getValueArray(sarray,MED_I_O) + "," +
+				getValueArray(sarray,MAX_I_O) + "," + 
+				"1";
 							
 		return textLine;
+	}
+	
+	private static String getValueArray(String[] sarray, Integer index){
+		try{
+			return sarray[index].isEmpty() ? "0" : sarray[index];
+		}catch(Exception ex){
+			return "0";
+		}
 	}
 	
 	private static Long getTempoExecucao(String[] sarray){

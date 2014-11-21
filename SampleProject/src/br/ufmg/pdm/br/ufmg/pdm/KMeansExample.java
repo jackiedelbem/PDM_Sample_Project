@@ -19,7 +19,7 @@ public class KMeansExample {
 
 	private static final String APP_NAME = "PDM - Trabalho Gustavo e Jacqueline";
 	private static final String PATH_DATA = "/user/root/*.csv";
-	private static final String PATH_MAP_BY_JOB_ID = "/user/root/mapByJobId.txt";
+	private static final String PATH_MAP_BY_JOB_ID = "/user/root/recursos.txt";
 
 	private static final Integer TEMPO_INICIAL = 0;
 	private static final Integer TEMPO_FINAL = 1;
@@ -91,13 +91,12 @@ public class KMeansExample {
 
 			private double[] getArrayResources(String[] sarray) {
 				
-				double[] values = new double[sarray.length];
+				double[] values = new double[sarray.length-1];
 				int index = 0;
 				for (int i = 1; i < sarray.length; i++){
 					values[index]=sarray[i].equals("") ? 0 :  Double.parseDouble(sarray[i]);
 					index++;
 				}
-	        	values[values.length - 1]= 1;
 				return values;
 			}
 	    });
@@ -124,18 +123,28 @@ public class KMeansExample {
 			private String getTextLine(String[] sarray) {
 				String textLine = sarray[JOB_ID] + "," +
 						getTempoExecucao(sarray) + "," +
-						sarray[CPU_USAGE] + "," +
-						sarray[MAX_CPU]	+ "," +
-						sarray[MEMORY_USAGE] + "," +
-						sarray[MAXIMUM_MEMORY] + "," +
-						sarray[ASSIGNED_MEMORY] + "," +
-						sarray[CACHE] + "," +
-						sarray[UNMAPPED_CACHE] + "," +
-						sarray[MED_DISK_SPACE] + "," +
-						sarray[MED_I_O] + "," +
-						sarray[MAX_I_O];
+						getValueArray(sarray,CPU_USAGE) + "," +
+						getValueArray(sarray,MAX_CPU)	+ "," +
+						getValueArray(sarray,MEMORY_USAGE) + "," +
+						getValueArray(sarray,MAXIMUM_MEMORY) + "," +
+						getValueArray(sarray,ASSIGNED_MEMORY) + "," +
+						getValueArray(sarray,CACHE) + "," +
+						getValueArray(sarray,UNMAPPED_CACHE) + "," +
+						getValueArray(sarray,MED_DISK_SPACE) + "," +
+						getValueArray(sarray,MED_I_O) + "," +
+						getValueArray(sarray,MAX_I_O) + "," + 
+						"1";
+						//classe
 									
 				return textLine;
+			}
+			
+			private String getValueArray(String[] sarray, Integer index){
+				try{
+					return sarray[index].isEmpty() ? "0" : sarray[index];
+				}catch(Exception ex){
+					return "0";
+				}
 			}
 			
 			private Long getTempoExecucao(String[] sarray){
