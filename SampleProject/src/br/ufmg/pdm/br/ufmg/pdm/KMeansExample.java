@@ -1,9 +1,7 @@
 package br.ufmg.pdm;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.spark.SparkConf;
@@ -26,8 +24,8 @@ public class KMeansExample {
 	private static final String APP_NAME = "PDM - Trabalho Gustavo e Jacqueline";
 	private static final String PATH_DATA = "/user/root/*.csv";
 	private static final String PATH_MAP_BY_JOB_ID = "/user/root/recursosById.txt";
-	
-	private static final String PATH_CENTROIDES = "/user/root/centroides.txt";
+	private static final String PATH_GRUPO_CLUSTER = "/user/root/grupoClusters.txt";
+	private static final String PATH_CENTROIDES = "/user/root/centroide.txt";
 
 	private static final Integer TEMPO_INICIAL = 0;
 	private static final Integer TEMPO_FINAL = 1;
@@ -86,23 +84,26 @@ public class KMeansExample {
 		//Agrupa Listas com o mesmo centroide
 		JavaPairRDD<Integer, Iterable<Vector>> pointsGroup = closest.groupByKey();
 		
-		pointsGroup.saveAsTextFile(PATH_CENTROIDES);
+		pointsGroup.saveAsTextFile(PATH_GRUPO_CLUSTER);
 		
-//		Map<Integer, Vector> newCentroids = pointsGroup.mapValues(
-//			     new Function<Iterable<Vector>, Vector>() {
-//			       
-//					private static final long serialVersionUID = 1L;
-//	
-//					public Vector call(Iterable<Vector> ps) throws Exception {
-//						return average(ps);
-//					}
-//				}).collectAsMap();
+		
+		JavaPairRDD<Integer, Vector> newCentroids = pointsGroup.mapValues(
+			     new Function<Iterable<Vector>, Vector>() {
+			       
+					private static final long serialVersionUID = 1L;
+	
+					public Vector call(Iterable<Vector> ps) throws Exception {
+						return average(ps);
+					}
+				});
+		
+		newCentroids.saveAsTextFile(PATH_CENTROIDES);
 	}
 	
-//	static Vector average(Iterable<Vector> ps) {
-//		//implementar calculo da media
-//		return ps.iterator().next();
-//	}
+	static Vector average(Iterable<Vector> ps) {
+		//implementar calculo da media
+		return ps.iterator().next();
+	}
 	
 	static int closestPoint(Vector p, List<Vector> centers) {
 	    int bestIndex = 0;
