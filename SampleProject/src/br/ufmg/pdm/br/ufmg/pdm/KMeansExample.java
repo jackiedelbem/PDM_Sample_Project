@@ -102,7 +102,8 @@ public class KMeansExample {
 	
 	static Vector average(Iterable<Vector> iterableVector) {
 		List<Vector> listaVector = Lists.newArrayList(iterableVector);
-		double[] media = new double[listaVector.size()];
+		int tamanhoArray = listaVector.get(0).toArray().length;
+		double[] media = new double[tamanhoArray];
 		for(Vector vector : listaVector){
 			double[] arrayVector = vector.toArray();
 			for(int index =0; index < media.length; index++)
