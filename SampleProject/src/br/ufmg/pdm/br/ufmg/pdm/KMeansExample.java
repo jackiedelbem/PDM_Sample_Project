@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -49,11 +51,6 @@ public class KMeansExample {
 	    generateFiles(data);
 	}
 	
-//	public void apagaArquivo(JavaSparkContext sc, String file) throws IOException {
-//		if (hdfs.exists(file)) {
-//			hdfs.delete(file, true);
-//		}
-
 	private static void generateFiles(JavaRDD<String> data) 
 	{
 		JavaPairRDD<String, Vector> recursosByJobID = generateResoucesByJobId(data, PATH_MAP_BY_JOB_ID);
