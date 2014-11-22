@@ -25,7 +25,7 @@ public class KMeansExample {
 	private static final String PATH_DATA = "/user/root/*.csv";
 	private static final String PATH_MAP_BY_JOB_ID = "/user/root/recursosById.txt";
 	private static final String PATH_GRUPO_CLUSTER = "/user/root/grupoClusters.txt";
-	private static final String PATH_CENTROIDES = "/user/root/centroide.txt";
+	private static final String PATH_CENTROIDES = "/user/root/centroides.txt";
 
 	private static final Integer TEMPO_INICIAL = 0;
 	private static final Integer TEMPO_FINAL = 1;
@@ -41,66 +41,78 @@ public class KMeansExample {
 	private static final Integer MAX_CPU = 13;
 	private static final Integer MAX_I_O = 14;
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) 
+	{
 		SparkConf conf = new SparkConf().setAppName(APP_NAME);
 	    JavaSparkContext sc = new JavaSparkContext(conf);
-	
-	    generateFileMapJobIdByResources(sc);
+	    JavaRDD<String> data = sc.textFile(PATH_DATA);
+	    generateFiles(data);
 	}
 
-	private static void generateFileMapJobIdByResources(JavaSparkContext sc) {
-		JavaRDD<String> data = sc.textFile(PATH_DATA);
-	    JavaRDD<String> arrayByLine = functionArrayByLine(data);
+	private static void generateFiles(JavaRDD<String> data) 
+	{
+		JavaPairRDD<String, Vector> recursosByJobID = generateResoucesByJobId(data, PATH_MAP_BY_JOB_ID);
+	    calculaKmeans(recursosByJobID);
+	}
+
+	private static JavaPairRDD<String, Vector> generateResoucesByJobId(	JavaRDD<String> data, String path)
+	{
+		JavaRDD<String> arrayByLine = functionArrayByLine(data);
 	    JavaPairRDD<String, Vector> mapJobId = functionMapByJobId(arrayByLine);
 	    JavaPairRDD<String, Vector> recursosByJobID = functionReduceByJobId(mapJobId);
-	    
-	    calculaKmeans(recursosByJobID);
-	
-	    recursosByJobID.saveAsTextFile(PATH_MAP_BY_JOB_ID);
+	    recursosByJobID.saveAsTextFile(path);
+		return recursosByJobID;
 	}
 	
-	private static void calculaKmeans(JavaPairRDD<String, Vector> recursosByJobID){
-		int K = 18;
-		
-		List<Tuple2<String, Vector>> centroidTuples = recursosByJobID.takeSample(false, K, 42);
-		final List<Vector> centroids = Lists.newArrayList();
-		for (Tuple2<String, Vector> t: centroidTuples) {
-			centroids.add(t._2());
-		}
-		
-		
-		JavaPairRDD<Integer, Vector> closest = recursosByJobID.mapToPair(
-		     new PairFunction<Tuple2<String, Vector>, Integer, Vector>() {
-
-				private static final long serialVersionUID = -6789983016973806171L;
-
-
-				public Tuple2<Integer, Vector> call(Tuple2<String, Vector> in) throws Exception {
-			         return new Tuple2<Integer, Vector>(closestPoint(in._2(), centroids), in._2());
-			       }
-			     }
-		   );
-		
-		//Agrupa Listas com o mesmo centroide
+	private static void calculaKmeans(JavaPairRDD<String, Vector> recursosByJobID)
+	{
+		final List<Vector> centroids = inicializaCentroides(recursosByJobID);
+		JavaPairRDD<Integer, Vector> closest = calculaPontoMaisProximo(recursosByJobID, centroids);
 		JavaPairRDD<Integer, Iterable<Vector>> pointsGroup = closest.groupByKey();
-		
 		pointsGroup.saveAsTextFile(PATH_GRUPO_CLUSTER);
-		
-		
-		JavaPairRDD<Integer, Vector> newCentroids = pointsGroup.mapValues(
-			     new Function<Iterable<Vector>, Vector>() {
-			       
+		JavaPairRDD<Integer, Vector> newCentroids = calculaCentroidByCluster(pointsGroup);
+		newCentroids.saveAsTextFile(PATH_CENTROIDES);
+	}
+
+	private static JavaPairRDD<Integer, Vector> calculaCentroidByCluster(JavaPairRDD<Integer, Iterable<Vector>> pointsGroup) 
+	{
+		JavaPairRDD<Integer, Vector> newCentroids = pointsGroup.mapValues( new Function<Iterable<Vector>, Vector>() 
+				{
 					private static final long serialVersionUID = 1L;
 	
 					public Vector call(Iterable<Vector> ps) throws Exception {
 						return average(ps);
 					}
 				});
-		
-		newCentroids.saveAsTextFile(PATH_CENTROIDES);
+		return newCentroids;
+	}
+
+	private static JavaPairRDD<Integer, Vector> calculaPontoMaisProximo(JavaPairRDD<String, Vector> recursosByJobID,final List<Vector> centroids) 
+	{
+		JavaPairRDD<Integer, Vector> closest = recursosByJobID.mapToPair(new PairFunction<Tuple2<String, Vector>, Integer, Vector>() 
+				{
+					private static final long serialVersionUID = -6789983016973806171L;
+					public Tuple2<Integer, Vector> call(Tuple2<String, Vector> in) throws Exception {
+				         return new Tuple2<Integer, Vector>(closestPoint(in._2(), centroids), in._2());
+				       }
+			     }
+		   );
+		return closest;
+	}
+
+	private static List<Vector> inicializaCentroides(JavaPairRDD<String, Vector> recursosByJobID) 
+	{
+		int K = 18;
+		List<Tuple2<String, Vector>> centroidTuples = recursosByJobID.takeSample(false, K, 42);
+		final List<Vector> centroids = Lists.newArrayList();
+		for (Tuple2<String, Vector> t: centroidTuples) {
+			centroids.add(t._2());
+		}
+		return centroids;
 	}
 	
-	static Vector average(Iterable<Vector> iterableVector) {
+	static Vector average(Iterable<Vector> iterableVector) 
+	{
 		List<Vector> listaVector = Lists.newArrayList(iterableVector);
 		int tamanhoArray = listaVector.get(0).toArray().length;
 		double[] media = new double[tamanhoArray];
@@ -109,14 +121,14 @@ public class KMeansExample {
 			for(int index =0; index < media.length; index++)
 				media[index] = media[index] + arrayVector[index];
 		}
-		for(int index =0; index < media.length; index++){
-			media[index] = media[index]/media.length;
-		}
+		for(int index =0; index < media.length; index++)
+			media[index] = media[index]/tamanhoArray;
 	
 		return Vectors.dense(media);
 	}
 	
-	static int closestPoint(Vector p, List<Vector> centers) {
+	static int closestPoint(Vector p, List<Vector> centers) 
+	{
 	    int bestIndex = 0;
 	    double closest = Double.POSITIVE_INFINITY;
 	    for (int i = 0; i < centers.size(); i++) {
@@ -129,9 +141,9 @@ public class KMeansExample {
 	    return bestIndex;
 	}
 	
-	static double calculaDistanciaEuclidiana(double[] vector1, double[] vector2) {
+	static double calculaDistanciaEuclidiana(double[] vector1, double[] vector2) 
+	{
 	     double sum = 0.0;
-	     
 	     for (int index=0; index<vector1.length; index++) {
 	    	 double diferenca = vector1[index] - vector2[index];
 	          sum = sum + Math.pow(diferenca,2);
@@ -223,8 +235,6 @@ public class KMeansExample {
 						getValueArray(sarray,MED_I_O) + "," +
 						getValueArray(sarray,MAX_I_O) + "," + 
 						"1";
-						//classe
-									
 				return textLine;
 			}
 			
@@ -236,17 +246,13 @@ public class KMeansExample {
 				}
 			}
 			
-			private Long getTempoExecucao(String[] sarray){
+			private Long getTempoExecucao(String[] sarray)
+			{
 				Long inicio =  Long.parseLong(sarray[TEMPO_INICIAL]);
 				Long fim = Long.parseLong(sarray[TEMPO_FINAL]);
-				
 				Long variacaoTempo = fim - inicio;
 				
-				Long tempoEmSegundos = TimeUnit.MILLISECONDS.toSeconds(variacaoTempo) ;
-				//TimeUnit.MILLISECONDS.toMinutes(variacaoTempo);
-				//TimeUnit.MILLISECONDS.toHours(variacaoTempo)
-				
-				return tempoEmSegundos;
+				return TimeUnit.MILLISECONDS.toHours(variacaoTempo) ;
 			}
 	    });
 	}
