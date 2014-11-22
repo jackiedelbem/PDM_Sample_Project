@@ -48,6 +48,11 @@ public class KMeansExample {
 	    JavaRDD<String> data = sc.textFile(PATH_DATA);
 	    generateFiles(data);
 	}
+	
+//	public void apagaArquivo(JavaSparkContext sc, String file) throws IOException {
+//		if (hdfs.exists(file)) {
+//			hdfs.delete(file, true);
+//		}
 
 	private static void generateFiles(JavaRDD<String> data) 
 	{
@@ -122,7 +127,7 @@ public class KMeansExample {
 				media[index] = media[index] + arrayVector[index];
 		}
 		for(int index =0; index < media.length; index++)
-			media[index] = media[index]/tamanhoArray;
+			media[index] = media[index]/listaVector.size();
 	
 		return Vectors.dense(media);
 	}
