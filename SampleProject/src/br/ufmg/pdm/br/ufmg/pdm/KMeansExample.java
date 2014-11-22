@@ -121,7 +121,7 @@ public class KMeansExample {
 			for(int index =0; index < media.length; index++)
 				media[index] = media[index] + arrayVector[index];
 		}
-		for(int index =0; index < media.length; index++)
+		for(int index = 0; index < media.length; index++)
 			media[index] = media[index]/listaVector.size();
 	
 		return Vectors.dense(media);
