@@ -1,6 +1,11 @@
 package br.ufmg.pdm;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.spark.mllib.linalg.Vector;
+import org.apache.spark.mllib.linalg.Vectors;
 
 public class Teste {
 	

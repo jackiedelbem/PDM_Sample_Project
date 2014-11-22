@@ -100,16 +100,26 @@ public class KMeansExample {
 		newCentroids.saveAsTextFile(PATH_CENTROIDES);
 	}
 	
-	static Vector average(Iterable<Vector> ps) {
-		//implementar calculo da media
-		return ps.iterator().next();
+	static Vector average(Iterable<Vector> iterableVector) {
+		List<Vector> listaVector = Lists.newArrayList(iterableVector);
+		double[] media = new double[listaVector.size()];
+		for(Vector vector : listaVector){
+			double[] arrayVector = vector.toArray();
+			for(int index =0; index < media.length; index++)
+				media[index] = media[index] + arrayVector[index];
+		}
+		for(int index =0; index < media.length; index++){
+			media[index] = media[index]/media.length;
+		}
+	
+		return Vectors.dense(media);
 	}
 	
 	static int closestPoint(Vector p, List<Vector> centers) {
 	    int bestIndex = 0;
 	    double closest = Double.POSITIVE_INFINITY;
 	    for (int i = 0; i < centers.size(); i++) {
-	    	double tempDist = computeEuclideanDistance(p.toArray(), centers.get(i).toArray());
+	    	double tempDist = calculaDistanciaEuclidiana(p.toArray(), centers.get(i).toArray());
 	    	if (tempDist < closest) {
 	    		closest = tempDist;
 	    		bestIndex = i;
@@ -118,7 +128,7 @@ public class KMeansExample {
 	    return bestIndex;
 	}
 	
-	static double computeEuclideanDistance(double[] vector1, double[] vector2) {
+	static double calculaDistanciaEuclidiana(double[] vector1, double[] vector2) {
 	     double sum = 0.0;
 	     
 	     for (int index=0; index<vector1.length; index++) {
