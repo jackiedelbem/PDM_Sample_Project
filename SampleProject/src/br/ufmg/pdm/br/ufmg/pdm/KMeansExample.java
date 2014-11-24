@@ -2,7 +2,6 @@ package br.ufmg.pdm;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -21,11 +20,15 @@ import com.google.common.collect.Lists;
 
 public class KMeansExample {
 
+	
+	private static final String PATH_REGISTROS_BY_CLASSE = "/user/root/resultados/numeroRegistroPorClasse.txt";
 	private static final String APP_NAME = "PDM - Trabalho Gustavo e Jacqueline";
 	private static final String PATH_DATA = "/user/root/*.csv";
-	private static final String PATH_MAP_BY_JOB_ID = "/user/root/recursosById.txt";
-	private static final String PATH_GRUPO_CLUSTER = "/user/root/grupoClusters.txt";
-	private static final String PATH_CENTROIDES = "/user/root/centroides.txt";
+	private static final String PATH_MAP_POR_CLASSE = "/user/root/resultados/mapPorClasse.txt";
+	private static final String PATH_MAP_BY_JOB_ID = "/user/root/resultados/recursosById.txt";
+	private static final String PATH_GRUPO_CLUSTER = "/user/root/resultados/grupoClusters.txt";
+	private static final String PATH_CENTROIDES = "/user/root/resultados/centroides.txt";
+//	private static final String PATH_ESTATISTICA = "/user/root/resultado/estatistica.txt";
 
 	private static final Integer TEMPO_INICIAL = 0;
 	private static final Integer TEMPO_FINAL = 1;
@@ -47,27 +50,37 @@ public class KMeansExample {
 	    JavaSparkContext sc = new JavaSparkContext(conf);
 	    JavaRDD<String> data = sc.textFile(PATH_DATA);
 	    generateFiles(data);
+	    
 	}
 	
 	private static void generateFiles(JavaRDD<String> data) 
 	{
-		JavaPairRDD<String, Vector> recursosByJobID = generateResoucesByJobId(data, PATH_MAP_BY_JOB_ID);
-	    calculaKmeans(recursosByJobID);
+		JavaPairRDD<String, Vector> jobs = generateResoucesByJobId(data);
+	    calculaKmeans(jobs);
 	}
 
-	private static JavaPairRDD<String, Vector> generateResoucesByJobId(	JavaRDD<String> data, String path)
+	private static JavaPairRDD<String, Vector> generateResoucesByJobId(	JavaRDD<String> data)
 	{
 		JavaRDD<String> arrayByLine = functionArrayByLine(data);
 	    JavaPairRDD<String, Vector> mapJobId = functionMapByJobId(arrayByLine);
 	    JavaPairRDD<String, Vector> recursosByJobID = functionReduceByJobId(mapJobId);
-	    recursosByJobID.saveAsTextFile(path);
-		return recursosByJobID;
+	    JavaPairRDD<String, Vector> reduceJobByClasse = functionReduceJobByClasse(recursosByJobID);
+	    JavaPairRDD<String, Integer> reduceByClasse = functionReduceByClasse(reduceJobByClasse);
+
+	    recursosByJobID.saveAsTextFile(PATH_MAP_BY_JOB_ID);
+	    reduceJobByClasse.saveAsTextFile(PATH_MAP_POR_CLASSE);
+	    reduceByClasse.saveAsTextFile(PATH_REGISTROS_BY_CLASSE);
+		
+	    return reduceJobByClasse;
 	}
 	
-	private static void calculaKmeans(JavaPairRDD<String, Vector> recursosByJobID)
+
+
+
+	private static void calculaKmeans(JavaPairRDD<String, Vector> jobs)
 	{
-		final List<Vector> centroids = inicializaCentroides(recursosByJobID);
-		JavaPairRDD<Integer, Vector> closest = calculaPontoMaisProximo(recursosByJobID, centroids);
+		final List<Vector> centroids = inicializaCentroides(jobs);
+		JavaPairRDD<Integer, Vector> closest = calculaPontoMaisProximo(jobs, centroids);
 		JavaPairRDD<Integer, Iterable<Vector>> pointsGroup = closest.groupByKey();
 		pointsGroup.saveAsTextFile(PATH_GRUPO_CLUSTER);
 		JavaPairRDD<Integer, Vector> newCentroids = calculaCentroidByCluster(pointsGroup);
@@ -151,10 +164,65 @@ public class KMeansExample {
 	     
 	     return Math.pow(sum,0.5);
 	}
-
-	private static JavaPairRDD<String, Vector> functionReduceByJobId(JavaPairRDD<String, Vector> mapJobId) {
+	
+	private static JavaPairRDD<String, Integer> functionReduceByClasse(JavaPairRDD<String, Vector> recursosJobByClasse) 
+	{
 		
-		return mapJobId.reduceByKey(new Function2<Vector, Vector, Vector>() {
+		JavaPairRDD<String, Integer> classes = recursosJobByClasse.mapToPair(new PairFunction<Tuple2<String,Vector>, String, Integer>() {
+
+			private static final long serialVersionUID = 1L;
+
+			public Tuple2<String, Integer> call(Tuple2<String, Vector> arg0) throws Exception {
+				double[] arrayValues = arg0._2.toArray();
+				int indexClasse = arrayValues.length - 1;
+				String chave = "" + arrayValues[indexClasse];
+			
+				return new Tuple2<String, Integer>(chave, 1);
+			}
+			
+		});
+		
+		return classes.reduceByKey(new Function2<Integer, Integer, Integer>() {
+					
+			private static final long serialVersionUID = -367498673880237884L;
+
+			public Integer call(Integer a, Integer b) {
+            	
+                return a + b;
+            }
+	    }, 1);
+	}
+	
+
+	private static JavaPairRDD<String, Vector> functionReduceJobByClasse(JavaPairRDD<String, Vector> recursosByJobID) 
+	{
+		
+		JavaPairRDD<String, Vector> jobs = recursosByJobID.mapToPair(new PairFunction<Tuple2<String,Vector>, String, Vector>() {
+
+			private static final long serialVersionUID = 1L;
+
+			public Tuple2<String, Vector> call(Tuple2<String, Vector> arg0) throws Exception {
+				String chave = arg0._1().split(",")[0];
+				
+				double[] arrayValues = arg0._2.toArray();
+				
+				int countIndex = 0;
+				
+				double[] arrayNew = new double[arrayValues.length - 3];
+				for(int index = 3; index < arrayValues.length; index++){
+					arrayNew[countIndex] = arrayValues[index];
+					countIndex ++;
+				}
+				
+			
+				return new Tuple2<String, Vector>(chave, Vectors.dense(arrayNew));
+			}
+			
+		});
+		
+//		return jobs;
+		
+		return jobs.reduceByKey(new Function2<Vector, Vector, Vector>() {
 			
 			private static final long serialVersionUID = -367498673880237884L;
 
@@ -169,9 +237,40 @@ public class KMeansExample {
 					values[i] = somatorio;
 		
 				}
-            	double classe = array_a[indexClasse] + array_b[indexClasse];
-            	values[indexClasse] = classe > 2 ? 2 : classe;
+            	values[indexClasse] = 3;
+				
+                return Vectors.dense(values);
+            }
+	    }, 1);
+	}
+	
+
+	private static JavaPairRDD<String, Vector> functionReduceByJobId(JavaPairRDD<String, Vector> mapJobId) {
+		
+		return mapJobId.reduceByKey(new Function2<Vector, Vector, Vector>() {
+			
+			private static final long serialVersionUID = -367498673880237884L;
+
+			public Vector call(Vector a, Vector b) {
+            	double array_a[] = a.toArray();
+            	double array_b[] = b.toArray();
             	
+            	double[] values = new double[array_a.length];
+				int indexClasse = array_a.length - 1;
+				for (int i = 3; i < indexClasse; i++){
+					double somatorio = array_a[i] + array_b[i];
+					values[i] = somatorio;
+		
+				}
+				double classe = array_a[indexClasse] + array_b[indexClasse];
+				//job_id e tempos
+				values[0] = array_a[0];
+				values[1] = array_a[1];
+				values[2] = array_a[2];
+				
+				//classe
+            	values[indexClasse] = classe >= 2 ? 2 : 1;
+				
                 return Vectors.dense(values);
             }
 	    }, 1);
@@ -187,14 +286,20 @@ public class KMeansExample {
 	        	String[] sarray = s.split(",");
 	        	double[] values = getArrayResources(sarray);
 	        	Vector vector = Vectors.dense(values);
-	            return new Tuple2<String, Vector>(sarray[0], vector);
+	            String chave = getChave(sarray);
+				return new Tuple2<String, Vector>(chave, vector);
 	        }
+			
+			private String getChave(String[] sarray){
+				//chave composto pelo JobId, tempo inicial, tempo final
+				return sarray[0] + "," + sarray[1] + "," + sarray[2];
+			}
 
 			private double[] getArrayResources(String[] sarray) {
 				
-				double[] values = new double[sarray.length-1];
+				double[] values = new double[sarray.length];
 				int index = 0;
-				for (int i = 1; i < sarray.length; i++){
+				for (int i = 0; i < sarray.length; i++){
 					values[index]=sarray[i].equals("") ? 0 :  Double.parseDouble(sarray[i]);
 					index++;
 				}
@@ -214,8 +319,7 @@ public class KMeansExample {
 				int contIndexArrayByLine = 0;
 				for (String line : sarray) {
 					String[] arrayLine = line.split(",");
-					String textLine = getTextLine(arrayLine);
-					values[contIndexArrayByLine] = textLine;
+					values[contIndexArrayByLine] = getTextLine(arrayLine);;
 					contIndexArrayByLine++;
 				}
 	  	      	return Arrays.asList(values);
@@ -223,6 +327,8 @@ public class KMeansExample {
 
 			private String getTextLine(String[] sarray) {
 				String textLine = sarray[JOB_ID] + "," +
+						getValueArray(sarray, TEMPO_INICIAL) + "," +
+						getValueArray(sarray, TEMPO_FINAL) + "," +
 						getTempoExecucao(sarray) + "," +
 						getValueArray(sarray,CPU_USAGE) + "," +
 						getValueArray(sarray,MAX_CPU)	+ "," +
@@ -251,8 +357,8 @@ public class KMeansExample {
 				Long inicio =  Long.parseLong(sarray[TEMPO_INICIAL]);
 				Long fim = Long.parseLong(sarray[TEMPO_FINAL]);
 				Long variacaoTempo = fim - inicio;
-				
-				return TimeUnit.MILLISECONDS.toHours(variacaoTempo) ;
+				return variacaoTempo;
+				//return TimeUnit.MILLISECONDS.toHours(variacaoTempo) ;
 			}
 	    });
 	}
