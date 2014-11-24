@@ -24,25 +24,12 @@ public class Teste {
 	private static final Integer MAX_I_O = 14;
 
 	public static void main(String[] args) {
-//		String s = "600000000,900000000,3418309,0,4155527081,0.001562,0.06787,,0.001156,,0.06787,2.861e-06,,,,,,,,";
-//		String[] arrayLine = s.split(",");
+		String s = "(11,[[6.0E8,9.728125000000001E-5,6.02725E-4,2.68575E-4,2.713125E-4,0.00193675,3.353375E-4,1.2146500000000002E-4,2.38425E-7,1.6688375E-6,1.1611874999999999E-4,2.0]])";
+		String[] arrayLine = s.split("[");
+		String[] arrayLine2 = s.split("],[");
 //		String textLine = getTextLine(arrayLine);
-//	    System.out.println(textLine);
+	    System.out.println(arrayLine2.toString());
 		
-		
-		
-		double[] media = new double[4];
-		double[] arrayVector = {12d,23d,24d,25d};
-		double[] arrayVector2 = {12d,23d,24d,25d};
-		for(int index =0; index < media.length; index++)
-			media[index] = media[index] + arrayVector[index];
-		for(int index =0; index < media.length; index++)
-			media[index] = media[index] + arrayVector2[index];
-		for(int index =0; index < media.length; index++)
-			media[index] = media[index]/2;
-		
-		
-		System.out.println(media);
 
 	}
 	

@@ -1,9 +1,12 @@
 package br.ufmg.pdm;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.spark.Partition;
 import org.apache.spark.SparkConf;
+import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -13,8 +16,10 @@ import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
+import org.apache.spark.rdd.RDD;
 
 import scala.Tuple2;
+import scala.collection.Iterator;
 
 import com.google.common.collect.Lists;
 
@@ -27,6 +32,7 @@ public class KMeansExample {
 	private static final String PATH_MAP_POR_CLASSE = "/user/root/resultados/mapPorClasse.txt";
 	private static final String PATH_MAP_BY_JOB_ID = "/user/root/resultados/recursosById.txt";
 	private static final String PATH_GRUPO_CLUSTER = "/user/root/resultados/grupoClusters.txt";
+	private static final String PATH_CENTROIDES_PARCIAL = "/user/root/resultados/centroides_Parcial.txt";
 	private static final String PATH_CENTROIDES = "/user/root/resultados/centroides.txt";
 //	private static final String PATH_ESTATISTICA = "/user/root/resultado/estatistica.txt";
 
@@ -49,14 +55,14 @@ public class KMeansExample {
 		SparkConf conf = new SparkConf().setAppName(APP_NAME);
 	    JavaSparkContext sc = new JavaSparkContext(conf);
 	    JavaRDD<String> data = sc.textFile(PATH_DATA);
-	    generateFiles(data);
+	    generateFiles(data, sc);
 	    
 	}
 	
-	private static void generateFiles(JavaRDD<String> data) 
+	private static void generateFiles(JavaRDD<String> data, JavaSparkContext sc) 
 	{
 		JavaPairRDD<String, Vector> jobs = generateResoucesByJobId(data);
-	    calculaKmeans(jobs);
+	    calculaKmeans(jobs, sc);
 	}
 
 	private static JavaPairRDD<String, Vector> generateResoucesByJobId(	JavaRDD<String> data)
@@ -77,32 +83,44 @@ public class KMeansExample {
 
 
 
-	private static void calculaKmeans(JavaPairRDD<String, Vector> jobs)
+	private static void calculaKmeans(JavaPairRDD<String, Vector> jobs, JavaSparkContext sc)
 	{
 		final List<Vector> centroids = inicializaCentroides(jobs);
 		JavaPairRDD<Integer, Vector> closest = calculaPontoMaisProximo(jobs, centroids);
 		JavaPairRDD<Integer, Iterable<Vector>> pointsGroup = closest.groupByKey();
 		pointsGroup.saveAsTextFile(PATH_GRUPO_CLUSTER);
-		JavaPairRDD<Integer, Vector> newCentroids = calculaCentroidByCluster(pointsGroup);
-		newCentroids.saveAsTextFile(PATH_CENTROIDES);
+		JavaPairRDD<Integer, List<Vector>> newCentroids = calculaCentroidByCluster(pointsGroup);
+		newCentroids.saveAsTextFile(PATH_CENTROIDES_PARCIAL);
+		
+		List<Vector> centroides_final = retornaCentroidesFinal(newCentroids,sc);
+	}
+	
+
+	private static List<Vector> retornaCentroidesFinal(	JavaPairRDD<Integer, List<Vector>> newCentroids, JavaSparkContext sc) {
+		List<Vector> centroides = new ArrayList<Vector>();
+		for(Tuple2<Integer, List<Vector>> tupla : newCentroids.collect()){
+			centroides.addAll(tupla._2);
+		}
+		
+		return centroides;
 	}
 
-	private static JavaPairRDD<Integer, Vector> calculaCentroidByCluster(JavaPairRDD<Integer, Iterable<Vector>> pointsGroup) 
+	private static JavaPairRDD<Integer, List<Vector>> calculaCentroidByCluster(JavaPairRDD<Integer, Iterable<Vector>> pointsGroup) 
 	{
-		JavaPairRDD<Integer, Vector> newCentroids = pointsGroup.mapValues( new Function<Iterable<Vector>, Vector>() 
+		JavaPairRDD<Integer, List<Vector>> newCentroids = pointsGroup.mapValues( new Function<Iterable<Vector>, List<Vector>>() 
 				{
 					private static final long serialVersionUID = 1L;
 	
-					public Vector call(Iterable<Vector> ps) throws Exception {
+					public List<Vector> call(Iterable<Vector> ps) throws Exception {
 						return average(ps);
 					}
 				});
 		return newCentroids;
 	}
 
-	private static JavaPairRDD<Integer, Vector> calculaPontoMaisProximo(JavaPairRDD<String, Vector> recursosByJobID,final List<Vector> centroids) 
+	private static JavaPairRDD<Integer, Vector> calculaPontoMaisProximo(JavaPairRDD<String, Vector> jobs,final List<Vector> centroids) 
 	{
-		JavaPairRDD<Integer, Vector> closest = recursosByJobID.mapToPair(new PairFunction<Tuple2<String, Vector>, Integer, Vector>() 
+		JavaPairRDD<Integer, Vector> closest = jobs.mapToPair(new PairFunction<Tuple2<String, Vector>, Integer, Vector>() 
 				{
 					private static final long serialVersionUID = -6789983016973806171L;
 					public Tuple2<Integer, Vector> call(Tuple2<String, Vector> in) throws Exception {
@@ -113,10 +131,10 @@ public class KMeansExample {
 		return closest;
 	}
 
-	private static List<Vector> inicializaCentroides(JavaPairRDD<String, Vector> recursosByJobID) 
+	private static List<Vector> inicializaCentroides(JavaPairRDD<String, Vector> jobs) 
 	{
 		int K = 18;
-		List<Tuple2<String, Vector>> centroidTuples = recursosByJobID.takeSample(false, K, 42);
+		List<Tuple2<String, Vector>> centroidTuples = jobs.takeSample(false, K, 42);
 		final List<Vector> centroids = Lists.newArrayList();
 		for (Tuple2<String, Vector> t: centroidTuples) {
 			centroids.add(t._2());
@@ -124,22 +142,64 @@ public class KMeansExample {
 		return centroids;
 	}
 	
-	static Vector average(Iterable<Vector> iterableVector) 
+	static List<Vector> average(Iterable<Vector> iterableVector) 
 	{
 		List<Vector> listaVector = Lists.newArrayList(iterableVector);
 		int tamanhoArray = listaVector.get(0).toArray().length;
-		double[] media = new double[tamanhoArray];
+		
+		double[] mediaClasse1 = new double[tamanhoArray];
+		double[] mediaClasse2 = new double[tamanhoArray];
+		double[] mediaClasse3 = new double[tamanhoArray];
+		
+		int registros_Classe1 = 0;
+		int registros_Classe2 = 0;
+		int registros_Classe3 = 0;
+		
 		for(Vector vector : listaVector){
 			double[] arrayVector = vector.toArray();
-			for(int index =0; index < media.length; index++)
-				media[index] = media[index] + arrayVector[index];
+			
+			if(arrayVector[arrayVector.length - 1] == 1d){
+				mediaClasse1 = somaArrays(arrayVector, mediaClasse1);
+				registros_Classe1++;
+			}
+			else if (arrayVector[arrayVector.length - 1] == 2d){
+				mediaClasse2 = somaArrays(arrayVector, mediaClasse2);
+				registros_Classe2++;
+			}
+			else{
+				mediaClasse3 = somaArrays(arrayVector, mediaClasse3);
+				registros_Classe3++;
+			}
 		}
-		for(int index = 0; index < media.length; index++)
-			media[index] = media[index]/listaVector.size();
-	
-		return Vectors.dense(media);
+		
+		List<Vector> listaCentroides = new ArrayList<Vector>();
+		
+		if(registros_Classe1 > 0)
+			listaCentroides.add(calculaCentroide(mediaClasse1, registros_Classe1));
+		
+		if(registros_Classe2 > 0)
+			listaCentroides.add(calculaCentroide(mediaClasse2, registros_Classe2));
+		
+		if(registros_Classe3 > 0)
+			listaCentroides.add(calculaCentroide(mediaClasse3, registros_Classe3));
+		
+		return listaCentroides;
+		
 	}
 	
+	private static Vector calculaCentroide(double[] media,	int numero_registros) {
+		for(int index = 0; index < media.length; index++)
+			media[index] = media[index]/numero_registros;
+		return Vectors.dense(media);
+	}
+
+	private static double[] somaArrays(double[] valores,double[] media) 
+	{
+		for(int index =0; index < media.length; index++)
+			media[index] = media[index] + valores[index];
+		return media;
+	}
+
 	static int closestPoint(Vector p, List<Vector> centers) 
 	{
 	    int bestIndex = 0;
