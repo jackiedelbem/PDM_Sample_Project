@@ -4,9 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.spark.Partition;
 import org.apache.spark.SparkConf;
-import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -16,10 +14,8 @@ import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
-import org.apache.spark.rdd.RDD;
 
 import scala.Tuple2;
-import scala.collection.Iterator;
 
 import com.google.common.collect.Lists;
 
@@ -79,9 +75,6 @@ public class KMeansExample {
 		
 	    return reduceJobByClasse;
 	}
-	
-
-
 
 	private static void calculaKmeans(JavaPairRDD<String, Vector> jobs, JavaSparkContext sc)
 	{
@@ -92,7 +85,7 @@ public class KMeansExample {
 		JavaPairRDD<Integer, List<Vector>> newCentroids = calculaCentroidByCluster(pointsGroup);
 		newCentroids.saveAsTextFile(PATH_CENTROIDES_PARCIAL);
 		
-		List<Vector> centroides_final = retornaCentroidesFinal(newCentroids,sc);
+//		List<Vector> centroides_final = retornaCentroidesFinal(newCentroids,sc);
 	}
 	
 
@@ -101,6 +94,38 @@ public class KMeansExample {
 		for(Tuple2<Integer, List<Vector>> tupla : newCentroids.collect()){
 			centroides.addAll(tupla._2);
 		}
+//		JavaRDD<String> centroide = sc.textFile(PATH_CENTROIDES_PARCIAL);
+//		
+//		centroide.flatMap(new FlatMapFunction<String, String>() {
+//
+//			private static final long serialVersionUID = 7689214802888112748L;
+//
+//			public Iterable<String> call(String s) {
+//				String s_formatada = replaceCluster(s);
+//				String[] sarray
+//				String[] sarray = s_formatada.split("], [");
+//				
+////						s.replace(oldChar, newChar)
+////		  	    String[] sarray = s.split("\n");
+////				String[] values = new String[sarray.length];
+////				int contIndexArrayByLine = 0;
+////				for (String line : sarray) {
+////					String[] arrayLine = line.split(",");
+////					values[contIndexArrayByLine] = getTextLine(arrayLine);;
+////					contIndexArrayByLine++;
+////				}
+////	  	      	return Arrays.asList(values);
+//				return "";
+//	        }
+//
+//			private String replaceCluster(String s) {
+//				for(int index = 0; index < 18; index++){
+//					String replace = "(" +index+ "[[";
+//					s.replace(replace, "");
+//				}
+//				return s;
+//			}
+//		});
 		
 		return centroides;
 	}
@@ -233,6 +258,7 @@ public class KMeansExample {
 			private static final long serialVersionUID = 1L;
 
 			public Tuple2<String, Integer> call(Tuple2<String, Vector> arg0) throws Exception {
+				
 				double[] arrayValues = arg0._2.toArray();
 				int indexClasse = arrayValues.length - 1;
 				String chave = "" + arrayValues[indexClasse];
@@ -262,8 +288,7 @@ public class KMeansExample {
 			private static final long serialVersionUID = 1L;
 
 			public Tuple2<String, Vector> call(Tuple2<String, Vector> arg0) throws Exception {
-				String chave = arg0._1().split(",")[0];
-				
+				String chave  = arg0._1().split(",")[0];
 				double[] arrayValues = arg0._2.toArray();
 				
 				int countIndex = 0;
