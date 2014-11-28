@@ -27,7 +27,7 @@ public class KMeansExample {
 	private static final String PATH_DATA = "/user/root/test/*.csv";
 	private static final String PATH_MAP_POR_CLASSE = "/user/root/resultados/mapPorClasse.txt";
 	private static final String PATH_MAP_BY_JOB_ID = "/user/root/resultados/recursosById.txt";
-	//private static final String PATH_GRUPO_CLUSTER = "/user/root/resultados/grupoClusters.txt";
+	private static final String PATH_GRUPO_CLUSTER = "/user/root/resultados/grupoClusters.txt";
 	private static final String PATH_CENTROIDES_PARCIAL = "/user/root/resultados/centroides_Parcial.txt";
 	//private static final String PATH_CENTROIDES = "/user/root/resultados/centroides.txt";
 //	private static final String PATH_ESTATISTICA = "/user/root/resultado/estatistica.txt";
@@ -81,7 +81,7 @@ public class KMeansExample {
 		final List<Vector> centroids = inicializaCentroides(jobs);
 		JavaPairRDD<Integer, Vector> closest = calculaPontoMaisProximo(jobs, centroids);
 		JavaPairRDD<Integer, Iterable<Vector>> pointsGroup = closest.groupByKey();
-//		pointsGroup.saveAsTextFile(PATH_GRUPO_CLUSTER);
+		pointsGroup.saveAsTextFile(PATH_GRUPO_CLUSTER);
 		JavaPairRDD<Integer, List<Vector>> newCentroids = calculaCentroidByCluster(pointsGroup);
 		newCentroids.saveAsTextFile(PATH_CENTROIDES_PARCIAL);
 		
