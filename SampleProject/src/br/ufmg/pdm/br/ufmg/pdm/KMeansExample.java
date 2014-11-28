@@ -24,12 +24,12 @@ public class KMeansExample {
 	
 	private static final String PATH_REGISTROS_BY_CLASSE = "/user/root/resultados/numeroRegistroPorClasse.txt";
 	private static final String APP_NAME = "PDM - Trabalho Gustavo e Jacqueline";
-	private static final String PATH_DATA = "/user/root/*.csv";
+	private static final String PATH_DATA = "/user/root/test/*.csv";
 	private static final String PATH_MAP_POR_CLASSE = "/user/root/resultados/mapPorClasse.txt";
 	private static final String PATH_MAP_BY_JOB_ID = "/user/root/resultados/recursosById.txt";
-	private static final String PATH_GRUPO_CLUSTER = "/user/root/resultados/grupoClusters.txt";
+	//private static final String PATH_GRUPO_CLUSTER = "/user/root/resultados/grupoClusters.txt";
 	private static final String PATH_CENTROIDES_PARCIAL = "/user/root/resultados/centroides_Parcial.txt";
-	private static final String PATH_CENTROIDES = "/user/root/resultados/centroides.txt";
+	//private static final String PATH_CENTROIDES = "/user/root/resultados/centroides.txt";
 //	private static final String PATH_ESTATISTICA = "/user/root/resultado/estatistica.txt";
 
 	private static final Integer TEMPO_INICIAL = 0;
@@ -81,53 +81,10 @@ public class KMeansExample {
 		final List<Vector> centroids = inicializaCentroides(jobs);
 		JavaPairRDD<Integer, Vector> closest = calculaPontoMaisProximo(jobs, centroids);
 		JavaPairRDD<Integer, Iterable<Vector>> pointsGroup = closest.groupByKey();
-		pointsGroup.saveAsTextFile(PATH_GRUPO_CLUSTER);
+//		pointsGroup.saveAsTextFile(PATH_GRUPO_CLUSTER);
 		JavaPairRDD<Integer, List<Vector>> newCentroids = calculaCentroidByCluster(pointsGroup);
 		newCentroids.saveAsTextFile(PATH_CENTROIDES_PARCIAL);
 		
-//		List<Vector> centroides_final = retornaCentroidesFinal(newCentroids,sc);
-	}
-	
-
-	private static List<Vector> retornaCentroidesFinal(	JavaPairRDD<Integer, List<Vector>> newCentroids, JavaSparkContext sc) {
-		List<Vector> centroides = new ArrayList<Vector>();
-		for(Tuple2<Integer, List<Vector>> tupla : newCentroids.collect()){
-			centroides.addAll(tupla._2);
-		}
-//		JavaRDD<String> centroide = sc.textFile(PATH_CENTROIDES_PARCIAL);
-//		
-//		centroide.flatMap(new FlatMapFunction<String, String>() {
-//
-//			private static final long serialVersionUID = 7689214802888112748L;
-//
-//			public Iterable<String> call(String s) {
-//				String s_formatada = replaceCluster(s);
-//				String[] sarray
-//				String[] sarray = s_formatada.split("], [");
-//				
-////						s.replace(oldChar, newChar)
-////		  	    String[] sarray = s.split("\n");
-////				String[] values = new String[sarray.length];
-////				int contIndexArrayByLine = 0;
-////				for (String line : sarray) {
-////					String[] arrayLine = line.split(",");
-////					values[contIndexArrayByLine] = getTextLine(arrayLine);;
-////					contIndexArrayByLine++;
-////				}
-////	  	      	return Arrays.asList(values);
-//				return "";
-//	        }
-//
-//			private String replaceCluster(String s) {
-//				for(int index = 0; index < 18; index++){
-//					String replace = "(" +index+ "[[";
-//					s.replace(replace, "");
-//				}
-//				return s;
-//			}
-//		});
-		
-		return centroides;
 	}
 
 	private static JavaPairRDD<Integer, List<Vector>> calculaCentroidByCluster(JavaPairRDD<Integer, Iterable<Vector>> pointsGroup) 
@@ -347,14 +304,14 @@ public class KMeansExample {
 					values[i] = somatorio;
 		
 				}
-				double classe = array_a[indexClasse] + array_b[indexClasse];
+			
 				//job_id e tempos
 				values[0] = array_a[0];
 				values[1] = array_a[1];
 				values[2] = array_a[2];
 				
 				//classe
-            	values[indexClasse] = classe >= 2 ? 2 : 1;
+            	values[indexClasse] = 2;
 				
                 return Vectors.dense(values);
             }
