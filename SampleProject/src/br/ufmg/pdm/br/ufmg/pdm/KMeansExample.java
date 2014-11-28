@@ -299,7 +299,7 @@ public class KMeansExample {
             	
             	double[] values = new double[array_a.length];
 				int indexClasse = array_a.length - 1;
-				for (int i = 3; i < indexClasse; i++){
+				for (int i = 4; i < indexClasse; i++){
 					double somatorio = array_a[i] + array_b[i];
 					values[i] = somatorio;
 		
@@ -309,6 +309,7 @@ public class KMeansExample {
 				values[0] = array_a[0];
 				values[1] = array_a[1];
 				values[2] = array_a[2];
+				values[3] = array_a[3];
 				
 				//classe
             	values[indexClasse] = 2;
